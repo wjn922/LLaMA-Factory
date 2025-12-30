@@ -70,9 +70,9 @@ def _load_single_dataset(
     elif dataset_attr.load_from == "cloud_file":
         data_path = dataset_attr.dataset_name
 
-    elif dataset_attr.load_from == "file":
+    elif dataset_attr.load_from == "file":  # local file
         data_files = []
-        local_path = os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)
+        local_path = os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)  # e.g. data/llava_next_780k.jsonl
         if os.path.isdir(local_path):  # is directory
             for file_name in os.listdir(local_path):
                 data_files.append(os.path.join(local_path, file_name))
@@ -127,7 +127,7 @@ def _load_single_dataset(
         )
     elif dataset_attr.load_from == "cloud_file":
         dataset = Dataset.from_list(read_cloud_json(data_path), split=dataset_attr.split)
-    else:
+    else:  # including load from "file"
         dataset = load_dataset(
             path=data_path,
             name=data_name,

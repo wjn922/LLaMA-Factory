@@ -183,7 +183,7 @@ def load_model(
         if model_args.mixture_of_depths == "convert":
             model = convert_pretrained_model_to_mod(model, config, model_args)
 
-    if not lazy_load:
+    if not lazy_load:  # false
         patch_model(model, tokenizer, model_args, is_trainable, add_valuehead)
         register_autoclass(config, model, tokenizer)
 

@@ -730,5 +730,19 @@
       "prompt": "content"
     },
     "folder": "python"
+  },
+  "llava_next_780k": {
+    "file_name": "llava_next_780k.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant"
+    }
   }
 }

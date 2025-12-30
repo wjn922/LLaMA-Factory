@@ -114,6 +114,8 @@ def run_exp(args: Optional[dict[str, Any]] = None, callbacks: Optional[list["Tra
 
     ray_args = get_ray_args(args)
     callbacks = callbacks or []
+    # training fuction: pt, sft, etc.
+    # -> training function workflow
     if ray_args.use_ray:
         callbacks.append(RayTrainReportCallback())
         trainer = get_ray_trainer(

@@ -102,8 +102,8 @@ def get_dataset_list(dataset_names: list[str] | None, dataset_dir: str | dict) -
     else:
         if dataset_dir.startswith("REMOTE:"):
             config_path = hf_hub_download(repo_id=dataset_dir[7:], filename=DATA_CONFIG, repo_type="dataset")
-        else:
-            config_path = os.path.join(dataset_dir, DATA_CONFIG)
+        else:  # local path 
+            config_path = os.path.join(dataset_dir, DATA_CONFIG)  # e.g. data/dataset_info.json
 
         try:
             with open(config_path) as f:
@@ -140,7 +140,7 @@ def get_dataset_list(dataset_names: list[str] | None, dataset_dir: str | dict) -
             dataset_attr = DatasetAttr("script", dataset_name=dataset_info[name]["script_url"])
         elif "cloud_file_name" in dataset_info[name]:
             dataset_attr = DatasetAttr("cloud_file", dataset_name=dataset_info[name]["cloud_file_name"])
-        else:
+        else:  # local file
             dataset_attr = DatasetAttr("file", dataset_name=dataset_info[name]["file_name"])
 
         dataset_attr.join(dataset_info[name])
