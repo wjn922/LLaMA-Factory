@@ -12,8 +12,8 @@ pip install vllm==0.11.0
 pip install ninja
 pip install flash-attn==2.8.3 --no-build-isolation
 
-# liger-kernel 0.6.3
-pip install liger-kernel==0.6.3
+# liger-kernel 0.6.4
+pip install liger-kernel==0.6.4
 
 # lmms-eval
 git clone https://github.com/EvolvingLMMs-Lab/lmms-eval

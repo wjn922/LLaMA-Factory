@@ -15,6 +15,9 @@
 import inspect
 from typing import TYPE_CHECKING
 
+import torch
+import torch.nn.functional as F
+
 from ...extras import logging
 
 
@@ -25,6 +28,40 @@ if TYPE_CHECKING:
 
 
 logger = logging.get_logger(__name__)
+
+
+def _patch_qwen3vl_vision_patch_embed() -> None:
+    """
+    Patch the Qwen3VLVisionPatchEmbed forward method to avoid slow conv3d operations.
+    This replaces conv3d with linear operations for better performance.
+    """
+    try:
+        from transformers.models.qwen3_vl import modeling_qwen3_vl
+    except ImportError:
+        logger.warning_rank0("Cannot import Qwen3VL modeling, skipping PatchEmbed patch.")
+        return
+
+    def patch_embed_forward(
+        self,
+        hidden_states: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Patch the forward of the Qwen3VLVisionPatchEmbed.
+        """
+        target_dtype = self.proj.weight.dtype
+        proj_weight = self.proj.weight
+        proj_bias = self.proj.bias
+        # compute in fp32 for numerical stability (even under outer autocast), then cast back
+        with torch.amp.autocast(device_type="cuda", enabled=False):
+            hidden_states_fp32 = hidden_states.float()
+            weight_fp32 = proj_weight.view(self.embed_dim, -1).float()
+            bias_fp32 = proj_bias.float() if proj_bias is not None else None
+            hidden_states = F.linear(hidden_states_fp32, weight_fp32, bias_fp32)
+        hidden_states = hidden_states.to(dtype=target_dtype)
+        return hidden_states
+
+    modeling_qwen3_vl.Qwen3VLVisionPatchEmbed.forward = patch_embed_forward
+    logger.info_rank0("Applied PatchEmbed optimization for Qwen3VL.")
 
 
 def apply_liger_kernel(
@@ -75,6 +112,8 @@ def apply_liger_kernel(
         from liger_kernel.transformers import apply_liger_kernel_to_qwen2_5_vl as apply_liger_kernel
     elif model_type == "qwen3":
         from liger_kernel.transformers import apply_liger_kernel_to_qwen3 as apply_liger_kernel
+    elif model_type == "qwen3_vl":
+        from liger_kernel.transformers import apply_liger_kernel_to_qwen3_vl as apply_liger_kernel
     elif model_type == "qwen3_moe":
         from liger_kernel.transformers import apply_liger_kernel_to_qwen3_moe as apply_liger_kernel
     elif model_type == "gpt_oss":
@@ -95,3 +134,7 @@ def apply_liger_kernel(
 
     apply_liger_kernel(**kwargs)
     logger.info_rank0("Liger kernel has been applied to the model.")
+
+    # Apply Qwen3VL specific patches
+    if model_type == "qwen3_vl":
+        _patch_qwen3vl_vision_patch_embed()

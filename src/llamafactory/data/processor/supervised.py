@@ -132,6 +132,7 @@ class PackedSupervisedDatasetProcessor(SupervisedDatasetProcessor):
         batch_input_ids, batch_labels, batch_images, batch_videos, batch_audios = [], [], [], [], []
         lengths = []
         length2indexes = defaultdict(list)
+        # encode each sample in the dataset
         for i in range(len(examples["_prompt"])):
             if len(examples["_prompt"][i]) % 2 != 1 or len(examples["_response"][i]) != 1:
                 logger.warning_rank0(
@@ -161,11 +162,12 @@ class PackedSupervisedDatasetProcessor(SupervisedDatasetProcessor):
                 batch_audios.append(examples["_audios"][i] or [])
                 valid_num += 1
 
-        model_inputs = defaultdict(list)
+        model_inputs = defaultdict(list)  # list[dict], each dict contains the packed data of a batch
         knapsacks = greedy_knapsack(lengths, self.data_args.cutoff_len)
         for knapsack in knapsacks:
             packed_input_ids, packed_attention_masks, packed_position_ids, packed_labels = [], [], [], []
             packed_images, packed_videos, packed_audios = [], [], []
+            # for the data index in the same batch
             for i, length in enumerate(knapsack):
                 index = length2indexes[length].pop()
                 packed_input_ids += batch_input_ids[index]
@@ -175,10 +177,11 @@ class PackedSupervisedDatasetProcessor(SupervisedDatasetProcessor):
                 packed_videos += batch_videos[index]
                 packed_audios += batch_audios[index]
                 if self.data_args.neat_packing:
-                    packed_attention_masks += [i + 1] * len(batch_input_ids[index])  # start from 1
+                    packed_attention_masks += [i + 1] * len(batch_input_ids[index])  # start from 1, e.g. [1, 1, 1, 2, 2, 3]
                 else:
-                    packed_attention_masks += [1] * len(batch_input_ids[index])
+                    packed_attention_masks += [1] * len(batch_input_ids[index])  # e.g. [1, 1, 1, 1, 1, 1]
 
+            # pad to the cutoff length
             if len(packed_input_ids) < self.data_args.cutoff_len + 1:  # avoid flash_attn drops attn mask
                 pad_length = self.data_args.cutoff_len - len(packed_input_ids) + 1
                 packed_input_ids += [self.tokenizer.pad_token_id] * pad_length

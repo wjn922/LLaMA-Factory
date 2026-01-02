@@ -356,8 +356,12 @@ def get_train_args(args: dict[str, Any] | list[str] | None = None) -> _TRAIN_CLS
     if model_args.use_kt and is_deepspeed_zero3_enabled():
         raise ValueError("KTransformers is incompatible with DeepSpeed ZeRO-3.")
 
-    if data_args.neat_packing and is_transformers_version_greater_than("4.53.0"):
-        raise ValueError("Neat packing is incompatible with transformers>=4.53.0.")
+    # NOTE: move this check to model/model_utils/packing.py
+    # if data_args.neat_packing and is_transformers_version_greater_than("4.53.0"):
+    #     raise ValueError("Neat packing is incompatible with transformers>=4.53.0.")
+
+    if data_args.neat_packing and training_args.per_device_train_batch_size != 1:
+        raise ValueError("Neat packing requires per_device_train_batch_size to be 1.")
 
     _set_env_vars()
     _verify_model_args(model_args, data_args, finetuning_args)
