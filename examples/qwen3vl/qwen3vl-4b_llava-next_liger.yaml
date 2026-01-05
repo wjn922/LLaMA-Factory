@@ -32,6 +32,7 @@ streaming: false # enable dataset streaming to handle large dataset
 output_dir: output/qwen3vl-4b_llava-next_1x8x28_lr1e-5_liger
 logging_steps: 10
 save_steps: 500
+save_total_limit: 2
 plot_loss: true
 overwrite_output_dir: false
 save_only_model: false
@@ -53,7 +54,7 @@ warmup_ratio: 0.03
 bf16: true
 ddp_timeout: 180000000
 resume_from_checkpoint: null # if not set, will auto resume by default if output_dir is not empty
-disable_gradient_checkpointing: true # to handle gradient ckpt bug in llavaov
+disable_gradient_checkpointing: false # to handle gradient ckpt bug in llavaov
 
 ### optimizer
 optim: adamw_torch 

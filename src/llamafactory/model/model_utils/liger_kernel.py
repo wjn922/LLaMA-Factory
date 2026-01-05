@@ -64,6 +64,45 @@ def _patch_qwen3vl_vision_patch_embed() -> None:
     logger.info_rank0("Applied PatchEmbed optimization for Qwen3VL.")
 
 
+def _patch_qwen3vl_vision_rope() -> None:
+    """
+    Restore the original RoPE implementation for Qwen3VL vision encoder.
+    This is necessary because liger_kernel's Triton-based RoPE cannot handle
+    the large tensor sizes in the vision encoder.
+    """
+    try:
+        from transformers.models.qwen3_vl import modeling_qwen3_vl
+
+        # Define the original apply_rotary_pos_emb_vision function
+        def apply_rotary_pos_emb_vision(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
+            """
+            Original implementation of apply_rotary_pos_emb for vision encoder.
+            This avoids the Triton tensor size limit issue.
+            """
+            cos = cos.unsqueeze(unsqueeze_dim)
+            sin = sin.unsqueeze(unsqueeze_dim)
+
+            # Apply rotary position embedding
+            q_embed = (q * cos) + (rotate_half(q) * sin)
+            k_embed = (k * cos) + (rotate_half(k) * sin)
+            return q_embed, k_embed
+
+        def rotate_half(x):
+            """Rotates half the hidden dims of the input."""
+            x1 = x[..., : x.shape[-1] // 2]
+            x2 = x[..., x.shape[-1] // 2 :]
+            return torch.cat((-x2, x1), dim=-1)
+
+        # Restore the original implementation
+        modeling_qwen3_vl.apply_rotary_pos_emb_vision = apply_rotary_pos_emb_vision
+        logger.info_rank0("Restored original RoPE implementation for Qwen3VL vision encoder to avoid Triton tensor size limit.")
+
+    except ImportError:
+        logger.warning_rank0("Cannot import Qwen3VL modeling for vision RoPE restoration.")
+    except Exception as e:
+        logger.warning_rank0(f"Failed to restore Qwen3VL vision RoPE: {e}")
+
+
 def apply_liger_kernel(
     config: "PretrainedConfig",
     model_args: "ModelArguments",
@@ -138,3 +177,4 @@ def apply_liger_kernel(
     # Apply Qwen3VL specific patches
     if model_type == "qwen3_vl":
         _patch_qwen3vl_vision_patch_embed()
+        _patch_qwen3vl_vision_rope()
