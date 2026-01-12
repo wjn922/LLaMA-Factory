@@ -21,7 +21,7 @@ dataset: llava_next_780k
 # dataset_dir: data  # default: data/, for readding dataset_info.json
 template: qwen3_vl_nothink
 # packing
-packing: true
+neat_packing: true
 cutoff_len: 16384
 # max_samples: 1000 
 overwrite_cache: false

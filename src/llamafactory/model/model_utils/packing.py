@@ -287,6 +287,8 @@ def configure_packing(config: "PretrainedConfig", model_args: "ModelArguments", 
     if model_type == "qwen3_vl":
         assert model_args.flash_attn == "fa2", "Qwen3-VL requires flash_attn='fa2' when using block diagonal attention."
         # flash attn monkey patch for packing
+        import transformers
+        import transformers.modeling_flash_attention_utils
         transformers.models.qwen3_vl.modeling_qwen3_vl.Qwen3VLTextAttention.forward = (
             qwen3vl_forward
         )
